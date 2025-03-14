@@ -26,6 +26,6 @@ func main() {
 	// Search word in MxN grid in different patterns
 	searchInGrid, _ := problems.NewSearchWordInGrid()
 	fmt.Println("\nMxN grid:", searchInGrid.Grid)
-	fmt.Println("Search of word in MxN grid result:", searchInGrid.SearchWord("LINK"))
+	fmt.Println("Search of word in MxN grid result:", searchInGrid.SearchWord("ABCB"))
 
 }
