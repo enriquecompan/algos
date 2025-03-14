@@ -11,102 +11,174 @@ type coord struct {
 }
 
 type node struct {
-	letter byte
+	letter   byte
+	x, y     int
+	parent   *node
 	children []node
 }
 
 func NewSearchWordInGrid() (*SearchWordInGrid, error) {
 	return &SearchWordInGrid{
 		Grid: [][]byte{
-			{'A', 'B', 'C', 'B'},
-			{'S', 'F', 'B', 'S'},
-			{'A', 'D', 'E', 'E'},
+			{'A', 'B', 'O', 'X'},
+			{'S', 'B', 'A', 'S'},
+			{'X', 'D', 'E', 'E'},
 		},
 	}, nil
 }
 
 func (instance *SearchWordInGrid) SearchWord(word string) bool {
 
-	searchPaths := make([][]coord, len(word))
-	for i := range searchPaths {
-		searchPaths[i] = make([]coord, 0)
-	}
-
-	var tracker []map[coord]bool
-	tracker = make([]map[coord]bool, 0)
-
+	// Initialize the root node of the search paths
+	searchPaths := make([]node, 0)
 	for i := range instance.Grid {
 		for j := range instance.Grid[i] {
 			if instance.Grid[i][j] == word[0] {
-				searchPaths[0] = append(searchPaths[0], coord{y: i, x: j, root: len(searchPaths[0])})
-				tracker = append(tracker, map[coord]bool{})
-				tracker[len(tracker)-1][coord{y: i, x: j, root: len(searchPaths[0]) - 1}] = true
+				searchPaths = append(searchPaths, node{letter: word[0], y: i, x: j, parent: nil, children: []node{}})
 			}
 		}
 	}
 
-	currentIndex := 0
+	gridWidth := len(instance.Grid[0])
+	gridHeight := len(instance.Grid)
 	for {
-		for _, v := range searchPaths[currentIndex] {
 
-			if v.x < (len(instance.Grid[0]) - 1) {
-				if instance.Grid[v.y][v.x+1] == word[currentIndex+1] && !tracker[v.root][coord{x: v.x + 1, y: v.y, root: v.root}] {
-					searchPaths[currentIndex+1] = append(searchPaths[currentIndex+1], coord{x: v.x + 1, y: v.y, root: v.root})
-					tracker[v.root][coord{x: v.x + 1, y: v.y, root: v.root}] = true
-				}
-			}
+		for rootIndex := range searchPaths {
+			currentNode := &searchPaths[rootIndex]
+			currentChildren := []*node{}
+			rootNodeProcessed := false
 
-			if v.x >= 1 {
-				if instance.Grid[v.y][v.x-1] == word[currentIndex+1] && !tracker[v.root][coord{x: v.x - 1, y: v.y, root: v.root}] {
-					searchPaths[currentIndex+1] = append(searchPaths[currentIndex+1], coord{x: v.x - 1, y: v.y, root: v.root})
-					tracker[v.root][coord{x: v.x - 1, y: v.y, root: v.root}] = true
-				}
-			}
+			for letterIndex := 1; letterIndex < len(word); letterIndex++ {
 
-			if v.y < (len(instance.Grid) - 1) {
-				if instance.Grid[v.y+1][v.x] == word[currentIndex+1] && !tracker[v.root][coord{x: v.x, y: v.y + 1, root: v.root}] {
-					searchPaths[currentIndex+1] = append(searchPaths[currentIndex+1], coord{x: v.x, y: v.y + 1, root: v.root})
-					tracker[v.root][coord{x: v.x, y: v.y + 1, root: v.root}] = true
-				}
-			}
+				currentLetter := word[letterIndex]
 
-			if v.y >= 1 {
-				if instance.Grid[v.y-1][v.x] == word[currentIndex+1] && !tracker[v.root][coord{x: v.x, y: v.y - 1, root: v.root}] {
-					searchPaths[currentIndex+1] = append(searchPaths[currentIndex+1], coord{x: v.x, y: v.y - 1, root: v.root})
-					tracker[v.root][coord{x: v.x, y: v.y - 1, root: v.root}] = true
+				// Root node processing
+				if !rootNodeProcessed {
+					rootNodeProcessed = true
+
+					if currentNode.x < (gridWidth-1) && instance.Grid[currentNode.y][currentNode.x+1] == byte(currentLetter) {
+
+						currentNode.children = append(currentNode.children,
+							node{
+								letter: byte(currentLetter),
+								x:      currentNode.x + 1,
+								y:      currentNode.y,
+								parent: currentNode,
+							})
+
+					}
+
+					if currentNode.x >= 1 && instance.Grid[currentNode.y][currentNode.x-1] == byte(currentLetter) {
+
+						currentNode.children = append(currentNode.children,
+							node{
+								letter: byte(currentLetter),
+								x:      currentNode.x - 1,
+								y:      currentNode.y,
+								parent: currentNode,
+							})
+
+					}
+
+					if currentNode.y < (gridHeight-1) && instance.Grid[currentNode.y+1][currentNode.x] == byte(currentLetter) {
+
+						currentNode.children = append(currentNode.children,
+							node{
+								letter: byte(currentLetter),
+								x:      currentNode.x,
+								y:      currentNode.y + 1,
+								parent: currentNode,
+							})
+
+					}
+
+					if currentNode.y >= 1 && instance.Grid[currentNode.y-1][currentNode.x] == byte(currentLetter) {
+
+						currentNode.children = append(currentNode.children,
+							node{
+								letter: byte(currentLetter),
+								x:      currentNode.x,
+								y:      currentNode.y - 1,
+								parent: currentNode,
+							})
+
+					}
+
+					for i := range currentNode.children {
+						currentChildren = append(currentChildren, &currentNode.children[i])
+					}
+
+				} else {
+					// Children nodes processing
+
+					nextChildren := []*node{}
+					for childIndex := range currentChildren {
+
+						currentNode = &*currentChildren[childIndex]
+
+						if currentNode.x < (gridWidth-1) && instance.Grid[currentNode.y][currentNode.x+1] == byte(currentLetter) {
+							if !(currentNode.x+1 == currentNode.parent.x && currentNode.y == currentNode.parent.y) {
+								currentNode.children = append(currentNode.children,
+									node{
+										letter: byte(currentLetter),
+										x:      currentNode.x + 1,
+										y:      currentNode.y,
+										parent: currentNode,
+									})
+							}
+						}
+
+						if currentNode.x >= 1 && instance.Grid[currentNode.y][currentNode.x-1] == byte(currentLetter) {
+							if !(currentNode.x-1 == currentNode.parent.x && currentNode.y == currentNode.parent.y) {
+								currentNode.children = append(currentNode.children,
+									node{
+										letter: byte(currentLetter),
+										x:      currentNode.x - 1,
+										y:      currentNode.y,
+										parent: currentNode,
+									})
+							}
+						}
+
+						if currentNode.y < (gridHeight-1) && instance.Grid[currentNode.y+1][currentNode.x] == byte(currentLetter) {
+							if !(currentNode.x == currentNode.parent.x && currentNode.y+1 == currentNode.parent.y) {
+								currentNode.children = append(currentNode.children,
+									node{
+										letter: byte(currentLetter),
+										x:      currentNode.x,
+										y:      currentNode.y + 1,
+										parent: currentNode,
+									})
+							}
+						}
+
+						if currentNode.y >= 1 && instance.Grid[currentNode.y-1][currentNode.x] == byte(currentLetter) {
+							if !(currentNode.x == currentNode.parent.x && currentNode.y-1 == currentNode.parent.y) {
+								currentNode.children = append(currentNode.children,
+									node{
+										letter: byte(currentLetter),
+										x:      currentNode.x,
+										y:      currentNode.y - 1,
+										parent: currentNode,
+									})
+							}
+						}
+
+						for i := range currentNode.children {
+							nextChildren = append(nextChildren, &currentNode.children[i])
+						}
+					}
+
+					currentChildren = nextChildren
 				}
+
 			}
 		}
 
-		currentIndex++
-
-		if currentIndex+1 >= len(word) {
+		if true {
 			break
 		}
 	}
 
-	found := false
-	for _, v := range tracker  {
-
-
-		fow _, l := range word {
-			
-			letterFound := false
-			for k, _ := range v {
-				if instance.Grid[k.y][k.x] == l { 
-					letterFound = true
-					continue
-				}
-			}
-
-			if !letterFound {
-
-			}
-		}
-
-
-
-	}
-
-	return found
+	return false
 }
